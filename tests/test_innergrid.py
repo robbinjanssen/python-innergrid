@@ -19,6 +19,7 @@ from innergrid import (
     InnergridTimeoutError,
     Kind,
     MilesightSensor,
+    Removal,
     SystemStatus,
     Update,
     parse_data,
@@ -117,7 +118,7 @@ def test_parse_message() -> None:
         "mysite/electricitymeters/10005",
         load_fixture("meter_single_phase.json").encode(),
     )
-    assert update is not None
+    assert isinstance(update, Update)
     assert update.key == "meter/10005"
     assert isinstance(update.data, ElectricityMeter)
     assert update.raw["id"] == 10005
@@ -131,7 +132,20 @@ def test_parse_data() -> None:
     assert update.data.temperature == 21.3  # type: ignore[union-attr]
 
 
-@pytest.mark.parametrize("payload", [b"not json", b"[1, 2]", None])
+@pytest.mark.parametrize("payload", [b"", "", None])
+def test_parse_removal(payload: Any) -> None:
+    """Test that an empty message means that the instance is gone."""
+    removal = parse_message("mysite", "mysite/chargepoints/19463", payload)
+    assert removal == Removal(kind=Kind.CHARGE_POINT, id="19463")
+    assert removal.key == "chargepoint/19463"
+
+
+def test_parse_removal_of_unused_topic() -> None:
+    """Test that an empty message on a topic that is not used is ignored."""
+    assert parse_message("mysite", "mysite/unknown", b"") is None
+
+
+@pytest.mark.parametrize("payload", [b"not json", b"[1, 2]"])
 def test_parse_invalid_message(payload: Any) -> None:
     """Test that a payload that is not a JSON object is ignored."""
     assert parse_message("mysite", "mysite/system", payload) is None
@@ -178,9 +192,10 @@ async def test_listen() -> None:
             ("mysite/system", load_fixture("system.json")),
             ("mysite/unknown", "{}"),
             ("milesight/uplink/a81758fffe054f0d", load_fixture("milesight.json")),
+            ("mysite/spaces/1/live", b""),
         ]
     )
-    updates: list[Update] = []
+    updates: list[Update | Removal] = []
     connected: list[bool] = []
     with (
         patch("aiomqtt.Client", fake),
@@ -191,10 +206,11 @@ async def test_listen() -> None:
         )
     assert fake.subscriptions == ["mysite/#", "milesight/uplink/#"]
     assert connected == [True]
-    assert [type(update.data) for update in updates] == [
+    assert [type(u.data) for u in updates[:2] if isinstance(u, Update)] == [
         SystemStatus,
         MilesightSensor,
     ]
+    assert updates[2] == Removal(kind=Kind.SPACE, id="1")
 
 
 async def test_listen_without_on_connect() -> None:
@@ -239,9 +255,13 @@ async def test_listen_other_code() -> None:
 
 
 async def test_wait_for_data() -> None:
-    """Test waiting for the first message with data."""
+    """Test waiting for the first message with data, skipping removals."""
     fake = FakeClient(
-        [("mysite/unknown", "{}"), ("mysite/system", load_fixture("system.json"))]
+        [
+            ("mysite/unknown", "{}"),
+            ("mysite/chargepoints/1", b""),
+            ("mysite/system", load_fixture("system.json")),
+        ]
     )
     with patch("aiomqtt.Client", fake):
         update = await Innergrid("broker", topic_prefix="mysite").wait_for_data()

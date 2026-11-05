@@ -35,6 +35,10 @@ async def main() -> None:
 asyncio.run(main())
 ```
 
+The callback of `listen()` gets an `Update` with the data of a topic, or a
+`Removal` when the instance of a topic is gone (the platform then publishes an
+empty message on its topic).
+
 `listen()` and `wait_for_data()` raise `InnergridAuthError` when the
 broker rejects the login and `InnergridConnectionError` when the connection
 fails or is lost. `wait_for_data()` raises `InnergridTimeoutError` when no
@@ -55,10 +59,12 @@ data arrives in time.
 | `<prefix>/events/chargepoints/<id>/<event>` | `ChargePointEvent` |
 | `milesight/uplink/<devEUI>` | `MilesightSensor` |
 
-Every update has a key (`<kind>/<id>`, for example `meter/10005`); the
-latest update of a key replaces the earlier ones. The topics are not
-retained, so the data arrives as it is published, every 10 seconds to 3
-minutes.
+`<prefix>` is the slug of the customer site. Every update and removal has a
+key (`<kind>/<id>`, for example `meter/10005`); the latest update of a key
+replaces the earlier ones. The platform's topics are retained, so the current
+state of every topic arrives right after subscribing; after that, a topic is
+published when it changes and every refresh interval (60 seconds by default).
+The Milesight sensors are not retained and publish every few minutes.
 
 `parse_data(kind, id, raw)` parses a payload that was stored earlier, for
 example `update.raw`, into an `Update` again.
