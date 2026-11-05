@@ -44,6 +44,27 @@ broker rejects the login and `InnergridConnectionError` when the connection
 fails or is lost. `wait_for_data()` raises `InnergridTimeoutError` when no
 data arrives in time.
 
+## REST API
+
+The edge server also has a REST API, with what MQTT lacks: the names of the
+spaces, and changing the session of a charge point. `InnergridApi` logs in
+with an e-mail address and password of a user of the edge server, and logs in
+again when the API rejects the token.
+
+```python
+from innergrid import ChargeStrategy, InnergridApi
+
+async with InnergridApi("http://192.0.2.10:31679/hook/api", email, password) as api:
+    spaces = await api.spaces()
+    await api.set_charge_point_session(
+        "19463", charge_strategy=ChargeStrategy.DIRECT_CHARGING, target_energy=30
+    )
+```
+
+`set_charge_point_session` changes only the values that are given: the
+charging strategy, the target energy (kWh), the departure time, the user and
+whether the session is claimed.
+
 ## Topics
 
 | Topic | Model |

@@ -1,5 +1,6 @@
 """Asynchronous Python client for the energy data that Innergrid publishes."""
 
+from .api import ChargeStrategy, InnergridApi, SpaceInfo
 from .const import CONNECTED_STATUSES, DEFAULT_PORT, Kind
 from .exceptions import (
     InnergridAuthError,
@@ -40,10 +41,12 @@ __all__ = [
     "Category",
     "ChargePoint",
     "ChargePointEvent",
+    "ChargeStrategy",
     "Circuit",
     "ElectricityMeter",
     "EnergyManager",
     "Innergrid",
+    "InnergridApi",
     "InnergridAuthError",
     "InnergridConnectionError",
     "InnergridError",
@@ -56,6 +59,7 @@ __all__ = [
     "Site",
     "SiteMeter",
     "Space",
+    "SpaceInfo",
     "SystemStatus",
     "Update",
     "parse_data",
