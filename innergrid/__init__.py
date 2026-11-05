@@ -9,6 +9,7 @@ from .exceptions import (
 )
 from .innergrid import (
     Innergrid,
+    Removal,
     Update,
     parse_data,
     parse_message,
@@ -51,6 +52,7 @@ __all__ = [
     "MilesightSensor",
     "Model",
     "Quantity",
+    "Removal",
     "Site",
     "SiteMeter",
     "Space",

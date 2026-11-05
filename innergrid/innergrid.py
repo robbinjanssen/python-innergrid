@@ -90,6 +90,23 @@ class Update:
         return f"{self.kind}/{self.id}"
 
 
+@dataclass(frozen=True)
+class Removal:
+    """The instance of a topic is gone, for example a removed charge point.
+
+    The platform publishes an empty retained message on its topic, which
+    also clears the topic on the broker.
+    """
+
+    kind: Kind
+    id: str
+
+    @property
+    def key(self) -> str:
+        """Return the key of the topic."""
+        return f"{self.kind}/{self.id}"
+
+
 def valid_topic_prefix(prefix: str) -> bool:
     """Return whether a topic prefix is valid: not empty, without wildcards."""
     prefix = prefix.strip().strip("/")
@@ -109,23 +126,27 @@ def topic_kind(prefix: str, topic: str) -> tuple[Kind, str] | None:
     return None
 
 
-def parse_message(prefix: str, topic: str, payload: Any) -> Update | None:
+def parse_message(prefix: str, topic: str, payload: Any) -> Update | Removal | None:
     """Parse a message, or return None if it is not used or not valid.
 
     Args:
     ----
-        prefix: The topic prefix, for example mysite.
+        prefix: The topic prefix: the slug of the customer site, for example
+            mysite.
         topic: The topic the message was published on.
-        payload: The payload of the message, a JSON object.
+        payload: The payload of the message, a JSON object. An empty payload
+            means that the instance of the topic is gone.
 
     Returns:
     -------
-        The parsed data, or None.
+        The parsed data, a removal, or None.
 
     """
     if (kind_id := topic_kind(prefix, topic)) is None:
         return None
     kind, idx = kind_id
+    if payload in (b"", "", None):
+        return Removal(kind=kind, id=idx)
     try:
         data = json.loads(payload)
     except (TypeError, ValueError):
@@ -217,7 +238,7 @@ class Innergrid:
 
     async def listen(
         self,
-        callback: Callable[[Update], None],
+        callback: Callable[[Update | Removal], None],
         on_connect: Callable[[], None] | None = None,
     ) -> None:
         """Connect and call the callback with the data of every message.
@@ -226,7 +247,8 @@ class Innergrid:
 
         Args:
         ----
-            callback: Called with the data of every message.
+            callback: Called with the data of every message, or a removal when
+                the instance of a topic is gone.
             on_connect: Called after connecting and subscribing.
 
         Raises:
@@ -281,7 +303,8 @@ class Innergrid:
                         update = parse_message(
                             self.topic_prefix, message.topic.value, message.payload
                         )
-                        if update is not None:
+                        # A removal is no data; the next topic may have some.
+                        if isinstance(update, Update):
                             return update
         except aiomqtt.MqttError as err:
             raise self._connection_error(err) from err

@@ -50,6 +50,9 @@ work on a branch.
 
 - **Public API**: everything users need is exported from
   `innergrid/__init__.py` and listed in `__all__`.
+- **Topics**: the prefix is the slug of the customer site. The platform's
+  topics are retained; an empty message means the instance is gone, which
+  `parse_message` returns as a `Removal`.
 - **Connection**: `listen()` connects once and raises
   `InnergridConnectionError` (or `InnergridAuthError`) when the
   connection fails or is lost; reconnecting is up to the caller.
