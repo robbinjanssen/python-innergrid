@@ -210,6 +210,7 @@ async def test_set_charge_point_session(aresponses: ResponsesMockServer) -> None
     assert charge_point.target_energy == 25
     assert charge_point.departure_at == datetime(2026, 11, 5, 16, 30, tzinfo=UTC)
     assert charge_point.current_user == "Alice"
+    assert charge_point.claimed is True
 
 
 async def test_set_charge_point_session_one_value(
