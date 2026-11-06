@@ -362,6 +362,7 @@ class ChargePoint:
     charging_state: str | None
     charge_strategy: str | None
     username: str | None
+    claimed: bool | None
     started_at: datetime | None
     finished_at: datetime | None
     departure_at: datetime | None
@@ -414,6 +415,7 @@ class ChargePoint:
             charging_state=_text(get_path(data, "session.chargingState")),
             charge_strategy=_text(get_path(data, "session.chargeStrategy")),
             username=_text(get_path(data, "session.username")),
+            claimed=_bool(get_path(data, "session.isClaimed")),
             started_at=_timestamp(get_path(data, "session.startedAt")),
             finished_at=_timestamp(get_path(data, "session.finishedAt")),
             departure_at=_timestamp(get_path(data, "session.departureAt")),

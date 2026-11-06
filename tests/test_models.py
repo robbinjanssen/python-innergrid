@@ -135,6 +135,7 @@ def test_charge_point_connected() -> None:
     assert charge_point.is_charging is False
     assert charge_point.current_user == "Alice"
     assert charge_point.started_at == datetime(2026, 11, 4, 6, 41, 24, tzinfo=UTC)
+    assert charge_point.claimed is False
     # The end time is of the previous session.
     assert charge_point.finished_at is not None
     assert charge_point.session_finished_at is None
